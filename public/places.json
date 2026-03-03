@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Yeti New York New York Ny",
+    "borough": "Manhattan",
+    "neighborhood": "",
+    "category": "other",
+    "visit_count": 1,
+    "total_spend": 34.84,
+    "avg_spend": 34.84,
+    "first_visit": "2025-05-17",
+    "last_visit": "2025-05-17",
+    "likely_favorite": false
+  },
+  {
+    "name": "Zara Usa New York Ny",
+    "borough": "Manhattan",
+    "neighborhood": "",
+    "category": "other",
+    "visit_count": 1,
+    "total_spend": 366.6,
+    "avg_spend": 366.6,
+    "first_visit": "2025-05-03",
+    "last_visit": "2025-05-03",
+    "likely_favorite": false
+  },
+  {
+    "name": "Zaros - Gct Track 1",
+    "borough": "Manhattan",
+    "neighborhood": "",
+    "category": "restaurant",
+    "visit_count": 1,
+    "total_spend": 11.59,
+    "avg_spend": 11.59,
+    "first_visit": "2025-06-19",
+    "last_visit": "2025-06-19",
+    "likely_favorite": false
+  },
+  {
+    "name": "Zaros - New York Ny",
+    "borough": "Manhattan",
+    "neighborhood": "",
+    "category": "restaurant",
+    "visit_count": 1,
+    "total_spend": 10.27,
+    "avg_spend": 10.27,
+    "first_visit": "2025-10-25",
+    "last_visit": "2025-10-25",
+    "likely_favorite": false
+  },
+  {
+    "name": "Zuckers Bagels & Sm",
+    "borough": "Manhattan",
+    "neighborhood": "",
+    "category": "restaurant",
+    "visit_count": 2,
+    "total_spend": 19.86,
+    "avg_spend": 9.93,
+    "first_visit": "2025-06-03",
+    "last_visit": "2025-08-27",
+    "likely_favorite": false
+  }
+]

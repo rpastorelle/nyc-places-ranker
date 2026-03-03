@@ -1,0 +1,437 @@
+:root {
+  /* 90s NYC-ish palette: paper + ink + subway tile + highlighter */
+  --bg: #0b0c10;
+  --paper: #f5f1e8;
+  --ink: #141414;
+  --muted: rgba(20, 20, 20, 0.7);
+  --tile: #d7e7f7;
+  --tile2: #bcd7f3;
+  --accent: #ff2d55; /* hot-pink-ish */
+  --accent2: #00d084; /* neon green */
+  --border: rgba(20, 20, 20, 0.25);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  line-height: 1.35;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 700px at 20% 10%, rgba(255,45,85,0.13), transparent 55%),
+              radial-gradient(1000px 650px at 80% 10%, rgba(0,208,132,0.10), transparent 50%),
+              var(--bg);
+  color: #eaeaf0;
+}
+
+/* subway-tile “paper” panel */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px 18px 60px;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sub {
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+kbd {
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.25);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* Control bar looks like a sticker strip */
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.controls button {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f3f7;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.controls button:hover {
+  border-color: rgba(255,255,255,0.28);
+  transform: translateY(-1px);
+}
+
+.controls .danger {
+  border-color: rgba(255,45,85,0.35);
+}
+
+.kControl {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.kControl input {
+  width: 74px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  color: #f3f3f7;
+  padding: 6px 10px;
+}
+
+/* Stats pills */
+.statsRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+}
+
+.pill {
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+/* --- Arena: centered, equal cards, above the fold --- */
+.main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+/* “Flyer taped to subway tile” look */
+.arena {
+  position: relative;
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.12), rgba(0,0,0,0.12)),
+    repeating-linear-gradient(90deg, rgba(215,231,247,0.10), rgba(215,231,247,0.10) 26px, rgba(188,215,243,0.10) 26px, rgba(188,215,243,0.10) 52px);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+/* fake tape corners */
+.arena::before,
+.arena::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 34px;
+  background: rgba(245,241,232,0.25);
+  border: 1px solid rgba(245,241,232,0.25);
+  transform: rotate(-9deg);
+  top: 10px;
+  left: 14px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.arena::after {
+  transform: rotate(10deg);
+  top: 10px;
+  left: auto;
+  right: 14px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 80px minmax(280px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  justify-items: center;
+  max-width: 980px;
+  margin: 0 auto; /* center the whole matchup */
+}
+
+.vs {
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  letter-spacing: 3px;
+  opacity: 0.7;
+  user-select: none;
+  transform: rotate(-2deg);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+}
+
+/* --- Cards: equal size + NYC zine poster vibe --- */
+.card {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  border-radius: 18px;
+  padding: 16px 16px 14px;
+  cursor: pointer;
+  text-align: left;
+
+  border: 2px solid rgba(255,255,255,0.16);
+  background: var(--paper);
+  color: var(--ink);
+
+  box-shadow:
+    0 18px 60px rgba(0,0,0,0.35),
+    0 3px 0 rgba(0,0,0,0.25);
+
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px) rotate(-0.2deg);
+  box-shadow:
+    0 22px 70px rgba(0,0,0,0.4),
+    0 3px 0 rgba(0,0,0,0.25);
+}
+
+.card:active {
+  transform: translateY(0px);
+  box-shadow:
+    0 14px 50px rgba(0,0,0,0.35),
+    0 2px 0 rgba(0,0,0,0.25);
+}
+
+/* card “sticker” hotkey */
+.cardHotkey {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 999px;
+  padding: 5px 10px;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+.cardRemove {
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 2px solid rgba(20,20,20,0.25);
+  background: rgba(255,255,255,0.9);
+  color: #141414;
+  font-weight: 900;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.cardRemove:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,45,85,0.5);
+}
+
+/* Left/right slight personality tilt */
+.card.left { transform-origin: left bottom; }
+.card.right { transform-origin: right bottom; }
+.card.left:hover { transform: translateY(-2px) rotate(-0.4deg); }
+.card.right:hover { transform: translateY(-2px) rotate(0.4deg); }
+
+/* Big name */
+.cardTitle {
+  font-size: 32px;
+  line-height: 1.05;
+  font-weight: 1000;
+  margin: 36px 0 10px;
+  letter-spacing: -0.4px;
+  text-transform: uppercase;
+}
+
+/* Tag row */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.03);
+}
+
+.tag.accent { border-color: rgba(255,45,85,0.5); }
+.tag.green { border-color: rgba(0,208,132,0.55); }
+
+/* meta grid */
+.cardDetails {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(20,20,20,0.25);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+.value {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* --- Leaderboard below the fold --- */
+.leaderboard {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.14);
+}
+
+.leaderboard h2 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.table {
+  width: 100%;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(6px);
+}
+
+.thead,
+.trow {
+  display: grid;
+  grid-template-columns: 44px 1.5fr 1fr 90px 90px 80px 80px 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.thead {
+  font-size: 12px;
+  opacity: 0.75;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.trow {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.trow:last-child { border-bottom: none; }
+
+.placeName { font-weight: 800; }
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer {
+  margin-top: 14px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.recent {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .header { grid-template-columns: 1fr; }
+  .controls { justify-content: flex-start; }
+
+  .cards {
+    grid-template-columns: 1fr;
+    max-width: 650px;
+  }
+  .vs { display: none; }
+}
+
+.centerSkip {
+  border-radius: 999px;
+  border: 2px dashed rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.35);
+  color: #f3f3f7;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+
+  min-width: 90px;
+  padding: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+
+  transition: all 0.15s ease;
+}
+
+.centerSkip:hover {
+  transform: scale(1.05);
+  border-color: rgba(255,255,255,0.6);
+}
+
+.centerSkipInner {
+  text-align: center;
+}
+
+.skipLabel {
+  font-size: 14px;
+}
+
+.skipHint {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
