@@ -255,7 +255,6 @@ kbd {
   background: rgba(255,255,255,0.9);
   color: #141414;
   font-weight: 900;
-  cursor: pointer;
   display: grid;
   place-items: center;
 }
@@ -263,6 +262,30 @@ kbd {
 .cardRemove:hover {
   transform: translateY(-1px);
   border-color: rgba(255,45,85,0.5);
+}
+
+/* New: Edit button */
+.cardEdit {
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+  position: absolute;
+  top: 12px;
+  left: 54px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 2px solid rgba(20,20,20,0.25);
+  background: rgba(255,255,255,0.9);
+  color: #141414;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+.cardEdit:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0,208,132,0.55);
 }
 
 /* Left/right slight personality tilt */
@@ -330,12 +353,60 @@ kbd {
   border-top: 1px solid rgba(255,255,255,0.14);
 }
 
+.leaderboardHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
 .leaderboard h2 {
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 16px;
   letter-spacing: 1px;
   text-transform: uppercase;
   opacity: 0.9;
+}
+
+.leaderboardFilters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.filterLabel {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.filterLabel select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  color: #f3f3f7;
+  padding: 8px 12px;
+  outline: none;
+}
+
+.filterClear {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f3f7;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.filterClear:hover {
+  border-color: rgba(255,255,255,0.28);
+  transform: translateY(-1px);
 }
 
 .table {
@@ -434,4 +505,149 @@ kbd {
   font-size: 10px;
   opacity: 0.6;
   margin-top: 4px;
+}
+
+/* --- Modal --- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.62);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.modal {
+  width: min(720px, 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)),
+    rgba(255,255,255,0.06);
+  backdrop-filter: blur(10px);
+  color: #f3f3f7;
+  box-shadow: 0 30px 120px rgba(0,0,0,0.55);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.modalTitle {
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+
+.modalSub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+.modalClose {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f3f7;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  border-color: rgba(255,255,255,0.28);
+  transform: translateY(-1px);
+}
+
+.modalBody {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.field input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 12px;
+  color: #f3f3f7;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: rgba(0,208,132,0.45);
+}
+
+.modalNote {
+  font-size: 12px;
+  opacity: 0.75;
+  padding-top: 4px;
+}
+
+.modalFooter {
+  padding: 12px 14px 14px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modalBtn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f3f7;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.modalBtn:hover {
+  border-color: rgba(255,255,255,0.28);
+  transform: translateY(-1px);
+}
+
+.modalBtn.primary {
+  border-color: rgba(0,208,132,0.35);
+}
+.modalBtn.primary:hover {
+  border-color: rgba(0,208,132,0.6);
+}
+
+@media (max-width: 640px) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
 }
