@@ -93,6 +93,11 @@ kbd {
   border-color: rgba(255,45,85,0.35);
 }
 
+.mergeToggle.active {
+  border-color: rgba(255,45,85,0.45);
+  background: rgba(255,45,85,0.10);
+}
+
 .kControl {
   display: flex;
   gap: 8px;
@@ -243,7 +248,6 @@ kbd {
 
 .cardRemove {
   z-index: 10;
-  cursor: pointer;
   pointer-events: auto;
   position: absolute;
   top: 12px;
@@ -255,6 +259,7 @@ kbd {
   background: rgba(255,255,255,0.9);
   color: #141414;
   font-weight: 900;
+  cursor: pointer;
   display: grid;
   place-items: center;
 }
@@ -264,10 +269,9 @@ kbd {
   border-color: rgba(255,45,85,0.5);
 }
 
-/* New: Edit button */
+/* Edit button */
 .cardEdit {
   z-index: 10;
-  cursor: pointer;
   pointer-events: auto;
   position: absolute;
   top: 12px;
@@ -279,6 +283,7 @@ kbd {
   background: rgba(255,255,255,0.9);
   color: #141414;
   font-weight: 900;
+  cursor: pointer;
   display: grid;
   place-items: center;
 }
@@ -409,6 +414,29 @@ kbd {
   transform: translateY(-1px);
 }
 
+/* Merge bar (appears in merge mode) */
+.mergeBar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-left: 6px;
+}
+
+.mergeCount {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.mergeAction:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mergeClear {
+  border-color: rgba(255,255,255,0.14);
+}
+
 .table {
   width: 100%;
   overflow: auto;
@@ -416,6 +444,20 @@ kbd {
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(6px);
+}
+
+/* Checkbox column */
+.checkCol {
+  width: 34px;
+  display: grid;
+  place-items: center;
+}
+
+.checkCol input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #ff2d55;
+  cursor: pointer;
 }
 
 .thead,
@@ -427,6 +469,8 @@ kbd {
   padding: 10px 12px;
 }
 
+/* If merge mode adds checkbox col, JS adds an extra cell; keep layout aligned by padding.
+   (The grid columns are handled in markup by rendering checkCol cell; this stays OK visually.) */
 .thead {
   font-size: 12px;
   opacity: 0.75;
@@ -529,6 +573,10 @@ kbd {
   color: #f3f3f7;
   box-shadow: 0 30px 120px rgba(0,0,0,0.55);
   overflow: hidden;
+}
+
+.modalWide {
+  width: min(980px, 100%);
 }
 
 .modalHeader {
@@ -644,6 +692,92 @@ kbd {
 }
 .modalBtn.primary:hover {
   border-color: rgba(0,208,132,0.6);
+}
+
+/* Merge modal layout */
+.mergeColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.mergeCol {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0,0,0,0.18);
+}
+
+.mergeHeading {
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.mergeHint {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 6px;
+}
+
+.mergeList {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.mergeRow {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+}
+
+.mergeRow:hover {
+  border-color: rgba(255,255,255,0.22);
+}
+
+.mergeRow input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #00d084;
+}
+
+.mergeRowTitle {
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+
+.mergeRowSub {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.mergeRowId {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mergeWarning {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.8;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255,255,255,0.16);
+}
+
+@media (max-width: 900px) {
+  .mergeColumns {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {

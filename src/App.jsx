@@ -26,7 +26,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const DEFAULT_RATING = 1000;
 const DEFAULT_K = 24;
-const LS_KEY = "nyc_places_ranker_v8"; // bump for id + seed behavior
+const LS_KEY = "nyc_places_ranker_v9"; // merge workflow + id/export/seed
 
 function slugify(str) {
   return String(str ?? "")
@@ -66,6 +66,29 @@ function safeParseJSON(value, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function toNumberOrNull(v) {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function isValidISODateString(s) {
+  if (!s || typeof s !== "string") return false;
+  // keep it simple: YYYY-MM-DD
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function minISODate(a, b) {
+  if (!isValidISODateString(a)) return b;
+  if (!isValidISODateString(b)) return a;
+  return a <= b ? a : b;
+}
+
+function maxISODate(a, b) {
+  if (!isValidISODateString(a)) return b;
+  if (!isValidISODateString(b)) return a;
+  return a >= b ? a : b;
 }
 
 /**
@@ -115,11 +138,6 @@ function choosePair(items, comparisonsById, pairCounts, lastPairKey) {
   return { a, b, key };
 }
 
-function toNumberOrNull(v) {
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
 export default function App() {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,14 +156,6 @@ export default function App() {
   // Place edits (persisted): id -> { name, neighborhood, category, borough }
   const [placeEditsById, setPlaceEditsById] = useState({});
 
-  // Baseline seeds captured from places.json (used when no session matches)
-  const [baselineSeed, setBaselineSeed] = useState({
-    ratings: {},
-    wins: {},
-    losses: {},
-    comparisonsById: {}
-  });
-
   // UX
   const [kFactor, setKFactor] = useState(DEFAULT_K);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -162,6 +172,13 @@ export default function App() {
     category: "",
     borough: ""
   });
+
+  // Merge mode + selection
+  const [mergeMode, setMergeMode] = useState(false);
+  const [mergeSelected, setMergeSelected] = useState({}); // id -> true
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSurvivorId, setMergeSurvivorId] = useState(null);
+  const [mergeMetaSourceId, setMergeMetaSourceId] = useState(null);
 
   const lastPairKeyRef = useRef(null);
 
@@ -225,7 +242,6 @@ export default function App() {
           };
         });
 
-      // Compute dataset hash from ids
       const datasetHash = basePlaces.map((p) => p.id).sort().join("|");
 
       // Build baseline seeds from file (for fallback usage)
@@ -247,12 +263,10 @@ export default function App() {
         if (typeof p._seed.comparisons === "number") {
           fileSeed.comparisonsById[p.id] = Math.max(0, p._seed.comparisons);
         } else {
-          // sensible fallback if comparisons missing
-          fileSeed.comparisonsById[p.id] = (fileSeed.wins[p.id] ?? 0) + (fileSeed.losses[p.id] ?? 0);
+          fileSeed.comparisonsById[p.id] =
+            (fileSeed.wins[p.id] ?? 0) + (fileSeed.losses[p.id] ?? 0);
         }
       }
-
-      setBaselineSeed(fileSeed);
 
       // Attempt restore from localStorage ONLY if datasetHash matches
       const saved = safeParseJSON(localStorage.getItem(LS_KEY), null);
@@ -275,6 +289,11 @@ export default function App() {
         nextEdits = saved.placeEditsById || {};
         setPlaceEditsById(nextEdits);
 
+        // merge mode state is UX-only; don't persist
+        setMergeMode(false);
+        setMergeSelected({});
+        setShowMergeModal(false);
+
         restored = true;
       } else {
         // No matching saved session → seed from file
@@ -290,10 +309,14 @@ export default function App() {
         setShowLeaderboard(false);
         setLeaderboardNeighborhood("ALL");
         setPlaceEditsById({});
+
+        setMergeMode(false);
+        setMergeSelected({});
+        setShowMergeModal(false);
+
         restored = false;
       }
 
-      // Apply edits (if restored)
       const placesWithEdits = basePlaces.map((p) => {
         const withoutSeed = { ...p };
         delete withoutSeed._seed;
@@ -302,8 +325,7 @@ export default function App() {
 
       setPlaces(placesWithEdits);
 
-      // If we restored a session, keep the currentPair null so it can regenerate.
-      // If we seeded fresh, also keep currentPair null.
+      // regen matchup after load
       setCurrentPair(null);
       lastPairKeyRef.current = null;
 
@@ -327,6 +349,10 @@ export default function App() {
     if (!editingId) return null;
     return places.find((p) => p.id === editingId) ?? null;
   }, [editingId, places]);
+
+  const mergeSelectedIds = useMemo(() => {
+    return Object.keys(mergeSelected).filter((id) => mergeSelected[id]);
+  }, [mergeSelected]);
 
   // Persist state
   useEffect(() => {
@@ -372,13 +398,14 @@ export default function App() {
     if (currentPair) return;
     if (activePlaces.length < 2) return;
     if (editingId) return;
+    if (showMergeModal) return;
 
     const pair = choosePair(activePlaces, comparisonsById, pairCounts, lastPairKeyRef.current);
     if (pair) {
       lastPairKeyRef.current = pair.key;
       setCurrentPair(pair);
     }
-  }, [loading, currentPair, activePlaces, comparisonsById, pairCounts, editingId]);
+  }, [loading, currentPair, activePlaces, comparisonsById, pairCounts, editingId, showMergeModal]);
 
   // Neighborhood list for filtering leaderboard
   const neighborhoodOptions = useMemo(() => {
@@ -457,7 +484,6 @@ export default function App() {
     recordResult(currentPair.b.id, currentPair.a.id);
   }
 
-  // Skip replaces the entire matchup (no Elo change, no exclusions)
   function skipMatchup() {
     setCurrentPair(null);
   }
@@ -473,24 +499,20 @@ export default function App() {
 
     const kept = currentPair.a.id === removedId ? currentPair.b : currentPair.a;
 
-    // Exclude removed
     setExcludedIds((prev) => ({ ...prev, [removedId]: true }));
 
-    // Compute a pool that reflects immediate removal (and does not include kept)
     const nextPool = activePlaces.filter((p) => p.id !== removedId && p.id !== kept.id);
     if (nextPool.length === 0) {
       setCurrentPair(null);
       return;
     }
 
-    // Pick a new opponent (prefer fewer comparisons)
     const opponent = pickWeighted(nextPool, comparisonsById);
     if (!opponent) {
       setCurrentPair(null);
       return;
     }
 
-    // Preserve which side the kept card was on
     const newPair =
       currentPair.a.id === kept.id
         ? {
@@ -516,28 +538,48 @@ export default function App() {
   }
 
   function resetAll() {
-    const ok = confirm("Reset rankings, history, exclusions, and edits? This clears local progress.");
+    const ok = confirm("Reset rankings, history, exclusions, edits, and merge UI state?");
     if (!ok) return;
 
     localStorage.removeItem(LS_KEY);
 
-    // Full reset to defaults (NOT seeded)
-    setRatings({});
-    setWins({});
-    setLosses({});
-    setComparisonsById({});
+    // Reset stats to default baseline (not seeded)
+    const ids = places.map((p) => p.id);
+    const nextRatings = {};
+    const nextWins = {};
+    const nextLosses = {};
+    const nextComps = {};
+    for (const id of ids) {
+      nextRatings[id] = DEFAULT_RATING;
+      nextWins[id] = 0;
+      nextLosses[id] = 0;
+      nextComps[id] = 0;
+    }
+
+    setRatings(nextRatings);
+    setWins(nextWins);
+    setLosses(nextLosses);
+    setComparisonsById(nextComps);
+
     setPairCounts({});
     setHistory([]);
     setExcludedIds({});
     setPlaceEditsById({});
     setLeaderboardNeighborhood("ALL");
+
     setEditingId(null);
     setCurrentPair(null);
     lastPairKeyRef.current = null;
+
+    setMergeMode(false);
+    setMergeSelected({});
+    setShowMergeModal(false);
+    setMergeSurvivorId(null);
+    setMergeMetaSourceId(null);
   }
 
   function exportRankedJSON() {
-    // Export uses ALL active places (not the filtered leaderboard view),
+    // Export uses ALL active places (not filtered leaderboard view),
     // includes edits (already applied in `places`), and includes id
     const exportRows = activePlaces
       .map((p) => {
@@ -614,13 +656,9 @@ export default function App() {
       return;
     }
 
-    // Persist edits by id
     setPlaceEditsById((prev) => ({ ...prev, [id]: next }));
-
-    // Update visible places immediately (id stays the same)
     setPlaces((prev) => prev.map((p) => (p.id === id ? { ...p, ...next } : p)));
 
-    // If currently shown pair includes this place, update the pair objects too
     setCurrentPair((prev) => {
       if (!prev) return prev;
       const a = prev.a?.id === id ? { ...prev.a, ...next } : prev.a;
@@ -631,7 +669,185 @@ export default function App() {
     setEditingId(null);
   }
 
-  // Keyboard controls (disabled while modal open)
+  // --- Merge mode ---
+  function toggleMergeMode() {
+    setMergeMode((m) => {
+      const next = !m;
+      if (!next) {
+        setMergeSelected({});
+      }
+      return next;
+    });
+  }
+
+  function toggleMergeSelected(id) {
+    setMergeSelected((prev) => {
+      const next = { ...prev };
+      next[id] = !next[id];
+      if (!next[id]) delete next[id];
+      return next;
+    });
+  }
+
+  function clearMergeSelection() {
+    setMergeSelected({});
+  }
+
+  function openMergeModal() {
+    const ids = mergeSelectedIds;
+    if (ids.length < 2) return;
+
+    // default survivor: highest rating among selected
+    let bestId = ids[0];
+    let bestRating = ratings[bestId] ?? DEFAULT_RATING;
+    for (const id of ids.slice(1)) {
+      const r = ratings[id] ?? DEFAULT_RATING;
+      if (r > bestRating) {
+        bestRating = r;
+        bestId = id;
+      }
+    }
+
+    setMergeSurvivorId(bestId);
+    setMergeMetaSourceId(bestId);
+    setShowMergeModal(true);
+  }
+
+  function closeMergeModal() {
+    setShowMergeModal(false);
+  }
+
+  function confirmMerge() {
+    const selectedIds = mergeSelectedIds;
+    if (selectedIds.length < 2) return;
+
+    const survivorId = mergeSurvivorId && selectedIds.includes(mergeSurvivorId)
+      ? mergeSurvivorId
+      : selectedIds[0];
+
+    const metaSourceId = mergeMetaSourceId && selectedIds.includes(mergeMetaSourceId)
+      ? mergeMetaSourceId
+      : survivorId;
+
+    const selectedPlaces = places.filter((p) => selectedIds.includes(p.id));
+    const survivor = places.find((p) => p.id === survivorId);
+    const metaSource = places.find((p) => p.id === metaSourceId);
+
+    if (!survivor || selectedPlaces.length < 2) {
+      setShowMergeModal(false);
+      return;
+    }
+
+    // Aggregate visit/spend/date fields
+    let visitCountSum = 0;
+    let totalSpendSum = 0;
+
+    let first = "";
+    let last = "";
+
+    for (const p of selectedPlaces) {
+      visitCountSum += Number(p.visit_count) || 0;
+      totalSpendSum += Number(p.total_spend) || 0;
+
+      if (p.first_visit) first = first ? minISODate(first, p.first_visit) : p.first_visit;
+      if (p.last_visit) last = last ? maxISODate(last, p.last_visit) : p.last_visit;
+    }
+
+    const avgSpend = visitCountSum > 0 ? totalSpendSum / visitCountSum : 0;
+
+    const mergedFields = {
+      visit_count: visitCountSum,
+      total_spend: totalSpendSum,
+      avg_spend: avgSpend,
+      first_visit: first || "",
+      last_visit: last || ""
+    };
+
+    const metaFields = metaSource
+      ? {
+          name: metaSource.name,
+          borough: metaSource.borough,
+          neighborhood: metaSource.neighborhood,
+          category: metaSource.category
+        }
+      : {
+          name: survivor.name,
+          borough: survivor.borough,
+          neighborhood: survivor.neighborhood,
+          category: survivor.category
+        };
+
+    const removedIds = selectedIds.filter((id) => id !== survivorId);
+    const removedSet = new Set(removedIds);
+
+    // 1) Update places: survivor gets mergedFields + chosen metadata; others removed entirely
+    setPlaces((prev) =>
+      prev
+        .filter((p) => !removedSet.has(p.id))
+        .map((p) => (p.id === survivorId ? { ...p, ...mergedFields, ...metaFields } : p))
+    );
+
+    // 2) Prune state maps for removed ids (Elo stats for survivor stay untouched)
+    function pruneMap(map) {
+      const next = { ...map };
+      for (const rid of removedSet) delete next[rid];
+      return next;
+    }
+
+    setRatings((prev) => pruneMap(prev));
+    setWins((prev) => pruneMap(prev));
+    setLosses((prev) => pruneMap(prev));
+    setComparisonsById((prev) => pruneMap(prev));
+
+    // Exclusions: if any removed id was excluded, it no longer matters
+    setExcludedIds((prev) => pruneMap(prev));
+
+    // Edits: removed ids can disappear
+    setPlaceEditsById((prev) => pruneMap(prev));
+
+    // Pair counts: remove any pair keys that include removed ids
+    setPairCounts((prev) => {
+      const next = {};
+      for (const [key, val] of Object.entries(prev || {})) {
+        // key is "a__b"
+        const parts = String(key).split("__");
+        if (parts.length !== 2) continue;
+        const [a, b] = parts;
+        if (removedSet.has(a) || removedSet.has(b)) continue;
+        next[key] = val;
+      }
+      return next;
+    });
+
+    // History: drop any comparisons involving removed ids (simple & safe)
+    setHistory((prev) =>
+      (prev || []).filter((h) => !removedSet.has(h.winnerId) && !removedSet.has(h.loserId))
+    );
+
+    // Current pair safety
+    setCurrentPair((prev) => {
+      if (!prev) return prev;
+      if (removedSet.has(prev.a?.id) || removedSet.has(prev.b?.id)) return null;
+
+      // If survivor is on screen, update its displayed fields
+      const a =
+        prev.a?.id === survivorId ? { ...prev.a, ...mergedFields, ...metaFields } : prev.a;
+      const b =
+        prev.b?.id === survivorId ? { ...prev.b, ...mergedFields, ...metaFields } : prev.b;
+      return { ...prev, a, b };
+    });
+
+    // 3) Clear merge UI state
+    setShowMergeModal(false);
+    setMergeSelected({});
+    setMergeSurvivorId(null);
+    setMergeMetaSourceId(null);
+
+    // 4) Ensure next matchup recalculates if needed
+    lastPairKeyRef.current = null;
+  }
+
+  // Keyboard controls (disabled while modals open)
   useEffect(() => {
     function onKeyDown(e) {
       if (loading) return;
@@ -640,6 +856,14 @@ export default function App() {
         if (e.key === "Escape") {
           e.preventDefault();
           closeEdit();
+        }
+        return;
+      }
+
+      if (showMergeModal) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeMergeModal();
         }
         return;
       }
@@ -661,7 +885,7 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, currentPair, kFactor, editingId]);
+  }, [loading, currentPair, kFactor, editingId, showMergeModal]);
 
   if (loading) {
     return (
@@ -723,6 +947,15 @@ export default function App() {
 
           <button onClick={() => setShowLeaderboard((s) => !s)}>
             {showLeaderboard ? "Hide" : "Show"} leaderboard
+          </button>
+
+          <button
+            type="button"
+            className={mergeMode ? "mergeToggle active" : "mergeToggle"}
+            onClick={toggleMergeMode}
+            title="Toggle merge mode"
+          >
+            {mergeMode ? "Merge mode: ON" : "Merge mode"}
           </button>
 
           <button onClick={exportRankedJSON}>Export ranked JSON</button>
@@ -805,12 +1038,31 @@ export default function App() {
                     Clear
                   </button>
                 ) : null}
+
+                {mergeMode ? (
+                  <div className="mergeBar">
+                    <div className="mergeCount">
+                      Selected: <strong>{mergeSelectedIds.length}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="mergeAction"
+                      onClick={openMergeModal}
+                      disabled={mergeSelectedIds.length < 2}
+                    >
+                      Merge selected
+                    </button>
+                    <button type="button" className="mergeClear" onClick={clearMergeSelection}>
+                      Clear
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
             <div className="table">
               <div className="thead">
-                <div>#</div>
+                {mergeMode ? <div className="checkCol">✓</div> : <div>#</div>}
                 <div>Place</div>
                 <div>Neighborhood</div>
                 <div className="num">Rating</div>
@@ -820,9 +1072,17 @@ export default function App() {
                 <div className="num">Spend</div>
               </div>
 
-              {leaderboard.slice(0, 75).map((p) => (
+              {leaderboard.map((p) => (
                 <div className="trow" key={p.id}>
-                  <div>{p.rank}</div>
+                  {mergeMode ? (
+                    <div className="checkCol">
+                      <input
+                        type="checkbox"
+                        checked={!!mergeSelected[p.id]}
+                        onChange={() => toggleMergeSelected(p.id)}
+                      />
+                    </div>
+                  ) : <div>{p.rank}</div>}
                   <div className="placeName">{p.name}</div>
                   <div>{p.neighborhood}</div>
                   <div className="num">{Math.round(p.rating)}</div>
@@ -847,6 +1107,24 @@ export default function App() {
           setDraft={setEditDraft}
           onClose={closeEdit}
           onSave={saveEdit}
+        />
+      )}
+
+      {/* Merge modal */}
+      {showMergeModal && (
+        <MergePlacesModal
+          selectedIds={mergeSelectedIds}
+          places={places}
+          ratings={ratings}
+          wins={wins}
+          losses={losses}
+          comparisonsById={comparisonsById}
+          survivorId={mergeSurvivorId}
+          setSurvivorId={setMergeSurvivorId}
+          metaSourceId={mergeMetaSourceId}
+          setMetaSourceId={setMergeMetaSourceId}
+          onClose={closeMergeModal}
+          onConfirm={confirmMerge}
         />
       )}
     </div>
@@ -1019,6 +1297,129 @@ function EditPlaceModal({ place, draft, setDraft, onClose, onSave }) {
           </button>
           <button type="button" className="modalBtn primary" onClick={onSave}>
             Save changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MergePlacesModal({
+  selectedIds,
+  places,
+  ratings,
+  wins,
+  losses,
+  comparisonsById,
+  survivorId,
+  setSurvivorId,
+  metaSourceId,
+  setMetaSourceId,
+  onClose,
+  onConfirm
+}) {
+  const selectedPlaces = selectedIds
+    .map((id) => places.find((p) => p.id === id))
+    .filter(Boolean);
+
+  return (
+    <div
+      className="modalOverlay"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+    >
+      <div className="modal modalWide" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="modalHeader">
+          <div>
+            <div className="modalTitle">Merge places</div>
+            <div className="modalSub">
+              Selected: {selectedIds.length}. Elo stays with the survivor. Visits/spend/dates will be
+              aggregated.
+            </div>
+          </div>
+
+          <button className="modalClose" type="button" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="modalBody">
+          <div className="mergeColumns">
+            <div className="mergeCol">
+              <div className="mergeHeading">Which place remains?</div>
+              <div className="mergeHint">This id stays. Elo/W/L/comparisons remain unchanged.</div>
+
+              <div className="mergeList">
+                {selectedPlaces.map((p) => {
+                  const r = ratings[p.id] ?? DEFAULT_RATING;
+                  const w = wins[p.id] ?? 0;
+                  const l = losses[p.id] ?? 0;
+                  const c = comparisonsById[p.id] ?? 0;
+
+                  return (
+                    <label className="mergeRow" key={`survive-${p.id}`}>
+                      <input
+                        type="radio"
+                        name="survivor"
+                        checked={survivorId === p.id}
+                        onChange={() => setSurvivorId(p.id)}
+                      />
+                      <div className="mergeRowMain">
+                        <div className="mergeRowTitle">{p.name}</div>
+                        <div className="mergeRowSub">
+                          {p.neighborhood || "—"} • {p.borough || "—"} • Elo {Math.round(r)} • {w}-{l} • {c} comps
+                        </div>
+                        <div className="mergeRowId">id: {p.id}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mergeCol">
+              <div className="mergeHeading">Which metadata should we use?</div>
+              <div className="mergeHint">
+                Name / borough / neighborhood / category will be copied from this place onto the
+                survivor (before export).
+              </div>
+
+              <div className="mergeList">
+                {selectedPlaces.map((p) => (
+                  <label className="mergeRow" key={`meta-${p.id}`}>
+                    <input
+                      type="radio"
+                      name="metaSource"
+                      checked={metaSourceId === p.id}
+                      onChange={() => setMetaSourceId(p.id)}
+                    />
+                    <div className="mergeRowMain">
+                      <div className="mergeRowTitle">{p.name}</div>
+                      <div className="mergeRowSub">
+                        {p.neighborhood || "—"} • {p.borough || "—"} • {p.category || "—"}
+                      </div>
+                      <div className="mergeRowId">id: {p.id}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <div className="mergeWarning">
+                After merging, the non-survivor ids are removed entirely (no undo).
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modalFooter">
+          <button type="button" className="modalBtn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="modalBtn primary" onClick={onConfirm}>
+            Merge now
           </button>
         </div>
       </div>
